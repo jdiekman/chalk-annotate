@@ -18,6 +18,7 @@ public class AppController
     private readonly OverlayWindow _overlay;
     private readonly ToolbarWindow _toolbar;
     private AppSettings _settings = new();
+    private bool _isShuttingDown;
 
     public AppController()
     {
@@ -33,6 +34,11 @@ public class AppController
         _toolbar.ClearRequested += () => _model.Clear();
         _toolbar.StartupToggled += enabled => _startup.SetEnabled(enabled);
         _toolbar.CloseRequested += () =>
+        {
+            Shutdown();
+            Application.Current.Shutdown();
+        };
+        _toolbar.Closed += (_, _) =>
         {
             Shutdown();
             Application.Current.Shutdown();
@@ -90,16 +96,24 @@ public class AppController
         {
             _overlay.ExitDrawMode();
             _toolbar.SetDrawModeIndicator(false);
+            e.Handled = true;
         }
         else if (e.Key == Key.Z &&
                  (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
+            if (Keyboard.FocusedElement is System.Windows.Controls.TextBox)
+                return; // let the text box handle its own undo
+
             _model.Undo();
+            e.Handled = true;
         }
     }
 
     public void Shutdown()
     {
+        if (_isShuttingDown) return;
+        _isShuttingDown = true;
+
         _settings.ToolbarLeft = _toolbar.Left;
         _settings.ToolbarTop = _toolbar.Top;
         _settings.ColorHex = _model.CurrentColor.ToString();
