@@ -30,7 +30,8 @@ public class HotkeyService : IDisposable
         {
             Width = 0,
             Height = 0,
-            WindowStyle = 0
+            WindowStyle = 0,
+            ParentWindow = new IntPtr(-3) // HWND_MESSAGE — makes this a message-only window
         };
         _source = new HwndSource(parameters);
         _source.AddHook(WndProc);
