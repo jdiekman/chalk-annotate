@@ -57,6 +57,23 @@ public partial class OverlayWindow : Window
     public void ExitDrawMode()
     {
         CommitActiveText();
+
+        if (_dragging)
+        {
+            DrawCanvas.ReleaseMouseCapture();
+            _dragging = false;
+        }
+        if (_preview != null)
+        {
+            DrawCanvas.Children.Remove(_preview);
+            _preview = null;
+        }
+        if (_freehand != null)
+        {
+            DrawCanvas.Children.Remove(_freehand);
+            _freehand = null;
+        }
+
         IsDrawing = false;
         if (_hwnd != IntPtr.Zero)
             NativeMethods.MakeClickThrough(_hwnd);
@@ -132,7 +149,8 @@ public partial class OverlayWindow : Window
                 var f = _freehand;
                 _freehand = null;
                 DrawCanvas.Children.Remove(f);
-                _model.Add(f);
+                if (f.Points.Count > 1)
+                    _model.Add(f);
             }
             return;
         }

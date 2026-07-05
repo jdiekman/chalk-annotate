@@ -42,6 +42,11 @@ public static class NativeMethods
     [DllImport("user32.dll")]
     private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 
+    private const int MDT_EFFECTIVE_DPI = 0;
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
     public static void MakeClickThrough(IntPtr hwnd)
     {
         int ex = GetWindowLong(hwnd, GWL_EXSTYLE);
@@ -67,6 +72,20 @@ public static class NativeMethods
             return SystemParameters.WorkArea;
 
         var r = mi.rcMonitor;
-        return new Rect(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
+
+        double scaleX = 1.0;
+        double scaleY = 1.0;
+        int hr = GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, out uint dpiX, out uint dpiY);
+        if (hr == 0 && dpiX != 0 && dpiY != 0)
+        {
+            scaleX = dpiX / 96.0;
+            scaleY = dpiY / 96.0;
+        }
+
+        return new Rect(
+            r.Left / scaleX,
+            r.Top / scaleY,
+            (r.Right - r.Left) / scaleX,
+            (r.Bottom - r.Top) / scaleY);
     }
 }
