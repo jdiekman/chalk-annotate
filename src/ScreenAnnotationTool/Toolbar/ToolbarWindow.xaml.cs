@@ -23,9 +23,15 @@ public partial class ToolbarWindow : Window
         _model = model;
         _startup = startup;
 
+        // Drag the whole toolbar by its background. Clicks on the Buttons/CheckBox
+        // inside Root don't reach here because ButtonBase marks MouseLeftButtonDown
+        // as handled. DragMove() is wrapped because it throws InvalidOperationException
+        // if the left button is released in the brief race between event and the move.
         Root.MouseLeftButtonDown += (_, e) =>
         {
-            if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+            if (e.ButtonState != MouseButtonState.Pressed) return;
+            try { DragMove(); }
+            catch (InvalidOperationException) { /* button released mid-drag; ignore */ }
         };
 
         BtnFreehand.Click += (_, _) => _model.CurrentTool = ToolKind.Freehand;
