@@ -1,13 +1,16 @@
-﻿using System.Configuration;
-using System.Data;
 using System.Windows;
 
 namespace ScreenAnnotationTool;
 
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
 public partial class App : Application
 {
-}
+    private AppController? _controller;
 
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        _controller = new AppController();
+        _controller.Start();
+    }
+}
