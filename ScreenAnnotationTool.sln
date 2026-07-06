@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{85C827F5-9E08-4620-BC5A-DE3CE83E0A14}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{22C40B25-B53A-42DF-8687-22CDD0CA0AE5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotationTool", "src\ScreenAnnotationTool\ScreenAnnotationTool.csproj", "{7712EBAB-02C3-4E79-92C2-8D846E05CC6B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotationTool", "src\ScreenAnnotationTool\ScreenAnnotationTool.csproj", "{909FAA24-6D86-479A-A03E-2B948F273B89}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{767B0E7D-9CD3-4C9B-B15B-8A57C9A929FA}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{DA11266A-DE2F-4BFD-AA45-F303FEC052EE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotationTool.Tests", "tests\ScreenAnnotationTool.Tests\ScreenAnnotationTool.Tests.csproj", "{B5F88936-B4BA-4FEB-815B-F93B48EC996F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotationTool.Tests", "tests\ScreenAnnotationTool.Tests\ScreenAnnotationTool.Tests.csproj", "{A09A3D6A-A4AF-4FB5-AD55-6909008A80CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,17 +20,17 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7712EBAB-02C3-4E79-92C2-8D846E05CC6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7712EBAB-02C3-4E79-92C2-8D846E05CC6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7712EBAB-02C3-4E79-92C2-8D846E05CC6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7712EBAB-02C3-4E79-92C2-8D846E05CC6B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B5F88936-B4BA-4FEB-815B-F93B48EC996F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B5F88936-B4BA-4FEB-815B-F93B48EC996F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B5F88936-B4BA-4FEB-815B-F93B48EC996F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B5F88936-B4BA-4FEB-815B-F93B48EC996F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{909FAA24-6D86-479A-A03E-2B948F273B89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{909FAA24-6D86-479A-A03E-2B948F273B89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{909FAA24-6D86-479A-A03E-2B948F273B89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{909FAA24-6D86-479A-A03E-2B948F273B89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A09A3D6A-A4AF-4FB5-AD55-6909008A80CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A09A3D6A-A4AF-4FB5-AD55-6909008A80CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A09A3D6A-A4AF-4FB5-AD55-6909008A80CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A09A3D6A-A4AF-4FB5-AD55-6909008A80CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{7712EBAB-02C3-4E79-92C2-8D846E05CC6B} = {85C827F5-9E08-4620-BC5A-DE3CE83E0A14}
-		{B5F88936-B4BA-4FEB-815B-F93B48EC996F} = {767B0E7D-9CD3-4C9B-B15B-8A57C9A929FA}
+		{909FAA24-6D86-479A-A03E-2B948F273B89} = {22C40B25-B53A-42DF-8687-22CDD0CA0AE5}
+		{A09A3D6A-A4AF-4FB5-AD55-6909008A80CC} = {DA11266A-DE2F-4BFD-AA45-F303FEC052EE}
 	EndGlobalSection
 EndGlobal
