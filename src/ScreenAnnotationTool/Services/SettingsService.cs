@@ -27,10 +27,17 @@ public class SettingsService
 
     public void Save(AppSettings settings)
     {
-        var dir = Path.GetDirectoryName(_filePath);
-        if (!string.IsNullOrEmpty(dir))
-            Directory.CreateDirectory(dir);
-        var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(_filePath, json);
+        try
+        {
+            var dir = Path.GetDirectoryName(_filePath);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_filePath, json);
+        }
+        catch
+        {
+            // Best-effort persistence; ignore failures (e.g. read-only profile, disk full).
+        }
     }
 }

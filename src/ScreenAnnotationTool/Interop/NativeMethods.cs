@@ -10,6 +10,8 @@ public static class NativeMethods
     public const int WS_EX_LAYERED = 0x00080000;
     public const int WS_EX_TRANSPARENT = 0x00000020;
 
+    // Only GWL_EXSTYLE (32-bit style flags) is read/written here, so the 32-bit
+    // GetWindowLong/SetWindowLong are safe on x64; no GetWindowLongPtr needed.
     [DllImport("user32.dll", SetLastError = true)]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 

@@ -11,6 +11,7 @@ public partial class ToolbarWindow : Window
 {
     private readonly AnnotationModel _model;
     private readonly StartupService _startup;
+    private bool _suppressStartupEvent = false;
 
     public event Action? UndoRequested;
     public event Action? ClearRequested;
@@ -55,12 +56,27 @@ public partial class ToolbarWindow : Window
         BtnClose.Click += (_, _) => CloseRequested?.Invoke();
 
         ChkStartup.IsChecked = _startup.IsEnabled();
-        ChkStartup.Checked += (_, _) => StartupToggled?.Invoke(true);
-        ChkStartup.Unchecked += (_, _) => StartupToggled?.Invoke(false);
+        ChkStartup.Checked += (_, _) =>
+        {
+            if (_suppressStartupEvent) return;
+            StartupToggled?.Invoke(true);
+        };
+        ChkStartup.Unchecked += (_, _) =>
+        {
+            if (_suppressStartupEvent) return;
+            StartupToggled?.Invoke(false);
+        };
     }
 
     public void SetDrawModeIndicator(bool on)
     {
         DrawIndicator.Fill = on ? Brushes.LimeGreen : Brushes.Gray;
+    }
+
+    public void ReflectStartupState()
+    {
+        _suppressStartupEvent = true;
+        ChkStartup.IsChecked = _startup.IsEnabled();
+        _suppressStartupEvent = false;
     }
 }

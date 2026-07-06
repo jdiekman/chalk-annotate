@@ -32,7 +32,21 @@ public class AppController
         _hotkeys.HotkeyPressed += OnHotkey;
         _toolbar.UndoRequested += () => _model.Undo();
         _toolbar.ClearRequested += () => _model.Clear();
-        _toolbar.StartupToggled += enabled => _startup.SetEnabled(enabled);
+        _toolbar.StartupToggled += enabled =>
+        {
+            try
+            {
+                _startup.SetEnabled(enabled);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    "Couldn't update the Windows startup setting:\n" + ex.Message,
+                    "Screen Annotation Tool", System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+                _toolbar.ReflectStartupState();
+            }
+        };
         _toolbar.CloseRequested += () =>
         {
             Shutdown();
@@ -114,12 +128,19 @@ public class AppController
         if (_isShuttingDown) return;
         _isShuttingDown = true;
 
-        _settings.ToolbarLeft = _toolbar.Left;
-        _settings.ToolbarTop = _toolbar.Top;
-        _settings.ColorHex = _model.CurrentColor.ToString();
-        _settings.Thickness = _model.CurrentThickness;
-        _settings.LaunchOnStartup = _startup.IsEnabled();
-        _settingsService.Save(_settings);
+        try
+        {
+            _settings.ToolbarLeft = _toolbar.Left;
+            _settings.ToolbarTop = _toolbar.Top;
+            _settings.ColorHex = _model.CurrentColor.ToString();
+            _settings.Thickness = _model.CurrentThickness;
+            _settings.LaunchOnStartup = _startup.IsEnabled();
+            _settingsService.Save(_settings);
+        }
+        catch
+        {
+            // Settings persistence is best-effort; teardown below must still happen.
+        }
 
         _hotkeys.Dispose();
         _overlay.Close();
