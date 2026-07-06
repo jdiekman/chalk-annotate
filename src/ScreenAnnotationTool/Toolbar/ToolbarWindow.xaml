@@ -1,0 +1,61 @@
+<Window x:Class="ScreenAnnotationTool.Toolbar.ToolbarWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="True"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        Title="Annotate">
+    <Border x:Name="Root" Background="#EE2B2B2B" CornerRadius="10" Padding="8">
+        <StackPanel Orientation="Horizontal">
+            <StackPanel.Resources>
+                <Style TargetType="Button">
+                    <Setter Property="Width" Value="34"/>
+                    <Setter Property="Height" Value="34"/>
+                    <Setter Property="Margin" Value="2,0"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="#3C3C3C"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="FontSize" Value="16"/>
+                </Style>
+            </StackPanel.Resources>
+
+            <Ellipse x:Name="DrawIndicator" Width="12" Height="12" Fill="Gray"
+                     VerticalAlignment="Center" Margin="4,0,8,0"/>
+
+            <Button x:Name="BtnFreehand" Content="✎" ToolTip="Freehand"/>
+            <Button x:Name="BtnArrow" Content="↗" ToolTip="Arrow"/>
+            <Button x:Name="BtnRect" Content="▭" ToolTip="Rectangle"/>
+            <Button x:Name="BtnEllipse" Content="◯" ToolTip="Circle"/>
+            <Button x:Name="BtnText" Content="T" ToolTip="Text"/>
+
+            <Border Width="1" Background="#555" Margin="6,4"/>
+
+            <Button x:Name="BtnRed" Background="Red" ToolTip="Red"/>
+            <Button x:Name="BtnYellow" Background="Yellow" ToolTip="Yellow"/>
+            <Button x:Name="BtnGreen" Background="LimeGreen" ToolTip="Green"/>
+            <Button x:Name="BtnBlue" Background="DodgerBlue" ToolTip="Blue"/>
+            <Button x:Name="BtnBlack" Background="Black" ToolTip="Black"/>
+
+            <Border Width="1" Background="#555" Margin="6,4"/>
+
+            <Button x:Name="BtnThin" Content="•" ToolTip="Thin"/>
+            <Button x:Name="BtnMedium" Content="●" ToolTip="Medium"/>
+            <Button x:Name="BtnThick" Content="⬤" ToolTip="Thick"/>
+
+            <Border Width="1" Background="#555" Margin="6,4"/>
+
+            <Button x:Name="BtnUndo" Content="⤺" ToolTip="Undo (Ctrl+Z)"/>
+            <Button x:Name="BtnClear" Content="🗑" ToolTip="Clear all (Ctrl+Alt+X)"/>
+
+            <Border Width="1" Background="#555" Margin="6,4"/>
+
+            <CheckBox x:Name="ChkStartup" Content="Startup" Foreground="White"
+                      VerticalAlignment="Center" Margin="4,0"/>
+            <Button x:Name="BtnClose" Content="✕" ToolTip="Exit" Background="#772222"/>
+        </StackPanel>
+    </Border>
+</Window>
