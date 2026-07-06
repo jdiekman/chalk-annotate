@@ -30,10 +30,13 @@ draw mode is on.
 | **Ctrl + Z** | Undo the last annotation (while drawing) |
 | **Esc** | Exit draw mode |
 
-When draw mode is **off**, your mouse works normally and clicks pass straight through to the
-app underneath — anything you've drawn stays visible on top. When draw mode is **on**, the
-green dot on the toolbar lights up and the overlay captures your mouse so you can draw. The
-overlay appears on whichever monitor your cursor is on when you toggle it on.
+When draw mode is **on**, the green dot on the toolbar lights up and the overlay captures your
+mouse so you can draw; the selected tool button shows a blue highlight. When you toggle draw
+mode **off** (Ctrl+Alt+D again, or Esc), the annotations are cleared and your mouse returns to
+working normally — clicks pass straight through to the app underneath. Use **Ctrl+Alt+X** to
+wipe the screen without leaving draw mode. The overlay appears on whichever monitor your cursor
+is on when you toggle it on, and the floating toolbar always stays above it so its buttons are
+reachable while you draw.
 
 ## Tools
 

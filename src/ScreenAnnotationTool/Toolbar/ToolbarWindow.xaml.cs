@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using ScreenAnnotationTool.Drawing;
@@ -12,6 +13,8 @@ public partial class ToolbarWindow : Window
     private readonly AnnotationModel _model;
     private readonly StartupService _startup;
     private bool _suppressStartupEvent = false;
+    private Button[] _toolButtons = Array.Empty<Button>();
+    private static readonly Brush SelectedToolBrush = new SolidColorBrush(Color.FromRgb(0x1E, 0x90, 0xFF));
 
     public event Action? UndoRequested;
     public event Action? ClearRequested;
@@ -35,11 +38,13 @@ public partial class ToolbarWindow : Window
             catch (InvalidOperationException) { /* button released mid-drag; ignore */ }
         };
 
-        BtnFreehand.Click += (_, _) => _model.CurrentTool = ToolKind.Freehand;
-        BtnArrow.Click += (_, _) => _model.CurrentTool = ToolKind.Arrow;
-        BtnRect.Click += (_, _) => _model.CurrentTool = ToolKind.Rectangle;
-        BtnEllipse.Click += (_, _) => _model.CurrentTool = ToolKind.Ellipse;
-        BtnText.Click += (_, _) => _model.CurrentTool = ToolKind.Text;
+        _toolButtons = new[] { BtnFreehand, BtnArrow, BtnRect, BtnEllipse, BtnText };
+        BtnFreehand.Click += (_, _) => SelectTool(ToolKind.Freehand, BtnFreehand);
+        BtnArrow.Click += (_, _) => SelectTool(ToolKind.Arrow, BtnArrow);
+        BtnRect.Click += (_, _) => SelectTool(ToolKind.Rectangle, BtnRect);
+        BtnEllipse.Click += (_, _) => SelectTool(ToolKind.Ellipse, BtnEllipse);
+        BtnText.Click += (_, _) => SelectTool(ToolKind.Text, BtnText);
+        HighlightTool(BtnFreehand); // default tool
 
         BtnRed.Click += (_, _) => _model.CurrentColor = Colors.Red;
         BtnYellow.Click += (_, _) => _model.CurrentColor = Colors.Yellow;
@@ -71,6 +76,23 @@ public partial class ToolbarWindow : Window
     public void SetDrawModeIndicator(bool on)
     {
         DrawIndicator.Fill = on ? Brushes.LimeGreen : Brushes.Gray;
+    }
+
+    private void SelectTool(ToolKind tool, Button button)
+    {
+        _model.CurrentTool = tool;
+        HighlightTool(button);
+    }
+
+    private void HighlightTool(Button active)
+    {
+        foreach (var b in _toolButtons)
+        {
+            b.BorderThickness = new Thickness(0);
+            b.BorderBrush = null;
+        }
+        active.BorderBrush = SelectedToolBrush;
+        active.BorderThickness = new Thickness(2);
     }
 
     public void ReflectStartupState()

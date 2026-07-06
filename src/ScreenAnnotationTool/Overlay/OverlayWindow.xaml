@@ -8,5 +8,8 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         Title="Overlay">
-    <Canvas x:Name="DrawCanvas" Background="Transparent"/>
+    <!-- Background alpha=1 (#01000000): visually invisible but hit-testable, so a
+         per-pixel-alpha layered window (AllowsTransparency) still receives mouse input.
+         A fully-transparent (alpha 0) background makes clicks pass straight through. -->
+    <Canvas x:Name="DrawCanvas" Background="#01000000"/>
 </Window>

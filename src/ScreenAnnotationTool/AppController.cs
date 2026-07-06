@@ -70,6 +70,10 @@ public class AppController
         catch { _model.CurrentColor = Colors.Red; }
         _model.CurrentThickness = _settings.Thickness;
 
+        // Show the overlay first (click-through) so the toolbar can be its owned window,
+        // guaranteeing the toolbar always stays above the overlay and remains clickable.
+        _overlay.ShowOverlay();
+        _toolbar.Owner = _overlay;
         _toolbar.Show();
         _toolbar.SetDrawModeIndicator(false);
 

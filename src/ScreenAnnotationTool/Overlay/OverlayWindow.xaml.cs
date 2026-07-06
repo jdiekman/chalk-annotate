@@ -40,6 +40,18 @@ public partial class OverlayWindow : Window
         NativeMethods.MakeClickThrough(_hwnd); // off by default
     }
 
+    // Show the overlay at startup in click-through mode (transparent, harmless) so it exists
+    // and can act as the owner of the toolbar window (keeping the toolbar always above it).
+    public void ShowOverlay()
+    {
+        var bounds = NativeMethods.GetMonitorBoundsFromCursor();
+        Left = bounds.Left;
+        Top = bounds.Top;
+        Width = bounds.Width;
+        Height = bounds.Height;
+        Show(); // SourceInitialized applies click-through by default
+    }
+
     public void EnterDrawMode()
     {
         var bounds = NativeMethods.GetMonitorBoundsFromCursor();
@@ -77,6 +89,8 @@ public partial class OverlayWindow : Window
         IsDrawing = false;
         if (_hwnd != IntPtr.Zero)
             NativeMethods.MakeClickThrough(_hwnd);
+
+        _model.Clear(); // wipe annotations when leaving draw mode
     }
 
     private void SyncCanvas()
