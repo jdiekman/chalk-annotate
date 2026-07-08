@@ -6,7 +6,30 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>Chalk</AssemblyName>
+    <Product>Chalk</Product>
+    <AssemblyTitle>Chalk</AssemblyTitle>
+    <ApplicationIcon>chalk.ico</ApplicationIcon>
+    <!-- WinForms is used only for the tray NotifyIcon; the app boots through WPF, so the
+         WinForms DPI bootstrap never runs and the manifest stays the sole DPI-awareness
+         source (required by the overlay positioning). Silence the manifest-DPI advisory. -->
+    <NoWarn>WFAC010</NoWarn>
   </PropertyGroup>
+
+  <!-- WinForms is enabled only for the tray-icon NotifyIcon. Drop its implicit global
+       usings so System.Drawing/System.Windows.Forms types (Point, Color, Application, …)
+       don't clash with the WPF types used throughout the app. The tray service
+       fully-qualifies the few WinForms types it needs. -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <!-- Embed the icon so the tray can load a crisp small frame at runtime. -->
+  <ItemGroup>
+    <Resource Include="chalk.ico" />
+  </ItemGroup>
 
 </Project>

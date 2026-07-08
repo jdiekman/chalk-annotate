@@ -17,19 +17,22 @@ public class AppController
     private readonly SettingsService _settingsService;
     private readonly OverlayWindow _overlay;
     private readonly ToolbarWindow _toolbar;
+    private readonly TrayIconService _tray = new();
     private AppSettings _settings = new();
     private bool _isShuttingDown;
+    private bool _reallyExiting;
 
     public AppController()
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var path = System.IO.Path.Combine(appData, "ScreenAnnotationTool", "settings.json");
+        var path = System.IO.Path.Combine(appData, "Chalk", "settings.json");
         _settingsService = new SettingsService(path);
 
         _overlay = new OverlayWindow(_model);
         _toolbar = new ToolbarWindow(_model, _startup);
 
         _hotkeys.HotkeyPressed += OnHotkey;
+        _toolbar.DrawToggleRequested += ToggleDraw; // toolbar button mirrors Ctrl+Alt+D
         _toolbar.UndoRequested += () => _model.Undo();
         _toolbar.ClearRequested += () => _model.Clear();
         _toolbar.StartupToggled += enabled =>
@@ -42,21 +45,24 @@ public class AppController
             {
                 System.Windows.MessageBox.Show(
                     "Couldn't update the Windows startup setting:\n" + ex.Message,
-                    "Screen Annotation Tool", System.Windows.MessageBoxButton.OK,
+                    "Chalk", System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
                 _toolbar.ReflectStartupState();
             }
         };
-        _toolbar.CloseRequested += () =>
+        // The X button hides the toolbar to the tray rather than quitting.
+        _toolbar.HideRequested += HideToolbar;
+        // Intercept Alt+F4 / any close: hide to tray instead, unless we're truly exiting.
+        _toolbar.Closing += (_, e) =>
         {
-            Shutdown();
-            Application.Current.Shutdown();
+            if (_reallyExiting) return;
+            e.Cancel = true;
+            HideToolbar();
         };
-        _toolbar.Closed += (_, _) =>
-        {
-            Shutdown();
-            Application.Current.Shutdown();
-        };
+
+        // Tray icon: left-click / "Show toolbar" reveals it; "Exit" really quits.
+        _tray.ShowRequested += ShowToolbar;
+        _tray.ExitRequested += ExitApp;
 
         _overlay.PreviewKeyDown += OnOverlayKeyDown;
     }
@@ -72,10 +78,11 @@ public class AppController
 
         // Show the overlay first (click-through) so the toolbar can be its owned window,
         // guaranteeing the toolbar always stays above the overlay and remains clickable.
+        // The toolbar itself starts HIDDEN in the tray — Ctrl+Alt+D or the tray icon reveals it.
         _overlay.ShowOverlay();
         _toolbar.Owner = _overlay;
-        _toolbar.Show();
         _toolbar.SetDrawModeIndicator(false);
+        _toolbar.UpdateColorSwatch();
 
         _hotkeys.Register(HotkeyService.HotkeyToggleDraw, ModifierKeys.Control | ModifierKeys.Alt, Key.D);
         _hotkeys.Register(HotkeyService.HotkeyClear, ModifierKeys.Control | ModifierKeys.Alt, Key.X);
@@ -103,9 +110,37 @@ public class AppController
         }
         else
         {
+            // Reveal the toolbar (if hidden in the tray) and start drawing immediately.
+            if (!_toolbar.IsVisible)
+                _toolbar.Show();
             _overlay.EnterDrawMode();
             _toolbar.SetDrawModeIndicator(true);
         }
+    }
+
+    private void ShowToolbar()
+    {
+        if (!_toolbar.IsVisible)
+            _toolbar.Show();
+        _toolbar.Activate();
+    }
+
+    private void HideToolbar()
+    {
+        // Leaving the toolbar shouldn't strand an interactive, invisible overlay.
+        if (_overlay.IsDrawing)
+        {
+            _overlay.ExitDrawMode();
+            _toolbar.SetDrawModeIndicator(false);
+        }
+        _toolbar.Hide();
+    }
+
+    private void ExitApp()
+    {
+        _reallyExiting = true;
+        Shutdown();
+        Application.Current.Shutdown();
     }
 
     private void OnOverlayKeyDown(object sender, KeyEventArgs e)
@@ -147,6 +182,7 @@ public class AppController
         }
 
         _hotkeys.Dispose();
+        _tray.Dispose();
         _overlay.Close();
     }
 }

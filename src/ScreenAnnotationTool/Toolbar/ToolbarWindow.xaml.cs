@@ -19,7 +19,8 @@ public partial class ToolbarWindow : Window
     public event Action? UndoRequested;
     public event Action? ClearRequested;
     public event Action<bool>? StartupToggled;
-    public event Action? CloseRequested;
+    public event Action? HideRequested;
+    public event Action? DrawToggleRequested;
 
     public ToolbarWindow(AnnotationModel model, StartupService startup)
     {
@@ -46,19 +47,18 @@ public partial class ToolbarWindow : Window
         BtnText.Click += (_, _) => SelectTool(ToolKind.Text, BtnText);
         HighlightTool(BtnFreehand); // default tool
 
-        BtnRed.Click += (_, _) => _model.CurrentColor = Colors.Red;
-        BtnYellow.Click += (_, _) => _model.CurrentColor = Colors.Yellow;
-        BtnGreen.Click += (_, _) => _model.CurrentColor = Colors.LimeGreen;
-        BtnBlue.Click += (_, _) => _model.CurrentColor = Colors.DodgerBlue;
-        BtnBlack.Click += (_, _) => _model.CurrentColor = Colors.Black;
+        BuildColorGrid();
+        BtnColor.Click += (_, _) => ColorPopup.IsOpen = !ColorPopup.IsOpen;
+        UpdateColorSwatch();
 
         BtnThin.Click += (_, _) => _model.CurrentThickness = 2;
         BtnMedium.Click += (_, _) => _model.CurrentThickness = 4;
         BtnThick.Click += (_, _) => _model.CurrentThickness = 8;
 
+        BtnToggleDraw.Click += (_, _) => DrawToggleRequested?.Invoke();
         BtnUndo.Click += (_, _) => UndoRequested?.Invoke();
         BtnClear.Click += (_, _) => ClearRequested?.Invoke();
-        BtnClose.Click += (_, _) => CloseRequested?.Invoke();
+        BtnClose.Click += (_, _) => HideRequested?.Invoke();
 
         ChkStartup.IsChecked = _startup.IsEnabled();
         ChkStartup.Checked += (_, _) =>
@@ -76,6 +76,52 @@ public partial class ToolbarWindow : Window
     public void SetDrawModeIndicator(bool on)
     {
         DrawIndicator.Fill = on ? Brushes.LimeGreen : Brushes.Gray;
+    }
+
+    // Five colour families, five light→dark shades each (25 swatches).
+    private static readonly string[][] ColorShades =
+    {
+        new[] { "#EF9A9A", "#EF5350", "#F44336", "#D32F2F", "#B71C1C" }, // Red
+        new[] { "#FFF59D", "#FFEE58", "#FDD835", "#F9A825", "#F57F17" }, // Yellow
+        new[] { "#A5D6A7", "#66BB6A", "#4CAF50", "#388E3C", "#1B5E20" }, // Green
+        new[] { "#90CAF9", "#42A5F5", "#2196F3", "#1976D2", "#0D47A1" }, // Blue
+        new[] { "#BDBDBD", "#9E9E9E", "#616161", "#424242", "#000000" }, // Gray → Black
+    };
+
+    private void BuildColorGrid()
+    {
+        foreach (var family in ColorShades)
+        {
+            foreach (var hex in family)
+            {
+                var color = (Color)ColorConverter.ConvertFromString(hex);
+                var swatch = new Button
+                {
+                    Width = 26,
+                    Height = 26,
+                    Margin = new Thickness(2),
+                    Background = new SolidColorBrush(color),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)),
+                    BorderThickness = new Thickness(1),
+                    ToolTip = hex
+                };
+                swatch.Click += (_, _) => SelectColor(color);
+                SwatchGrid.Children.Add(swatch);
+            }
+        }
+    }
+
+    private void SelectColor(Color color)
+    {
+        _model.CurrentColor = color;
+        UpdateColorSwatch();
+        ColorPopup.IsOpen = false;
+    }
+
+    // Reflect the model's current colour on the toolbar's colour swatch.
+    public void UpdateColorSwatch()
+    {
+        BtnColor.Background = new SolidColorBrush(_model.CurrentColor);
     }
 
     private void SelectTool(ToolKind tool, Button button)

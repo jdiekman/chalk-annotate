@@ -10,7 +10,7 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        _singleInstanceMutex = new Mutex(true, "ScreenAnnotationTool_SingleInstance_9f1c", out bool createdNew);
+        _singleInstanceMutex = new Mutex(true, "Chalk_SingleInstance_9f1c", out bool createdNew);
         if (!createdNew)
         {
             // Another instance already owns the global hotkeys; exit quietly.

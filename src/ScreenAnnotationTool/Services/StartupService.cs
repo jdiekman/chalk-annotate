@@ -22,7 +22,7 @@ public class StartupService
         new StartupService(
             Registry.CurrentUser,
             @"Software\Microsoft\Windows\CurrentVersion\Run",
-            "ScreenAnnotationTool",
+            "Chalk",
             Environment.ProcessPath ?? "");
 
     public bool IsEnabled()

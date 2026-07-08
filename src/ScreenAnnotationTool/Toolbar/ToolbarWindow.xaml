@@ -8,7 +8,8 @@
         ShowInTaskbar="True"
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
-        Title="Annotate">
+        Icon="/chalk.ico"
+        Title="Chalk">
     <Border x:Name="Root" Background="#EE2B2B2B" CornerRadius="10" Padding="8">
         <StackPanel Orientation="Horizontal">
             <StackPanel.Resources>
@@ -23,8 +24,9 @@
                 </Style>
             </StackPanel.Resources>
 
-            <Ellipse x:Name="DrawIndicator" Width="12" Height="12" Fill="Gray"
-                     VerticalAlignment="Center" Margin="4,0,8,0"/>
+            <Button x:Name="BtnToggleDraw" ToolTip="Start/stop drawing (Ctrl+Alt+D)" Margin="0,0,6,0">
+                <Ellipse x:Name="DrawIndicator" Width="14" Height="14" Fill="Gray"/>
+            </Button>
 
             <Button x:Name="BtnFreehand" Content="✎" ToolTip="Freehand"/>
             <Button x:Name="BtnArrow" Content="↗" ToolTip="Arrow"/>
@@ -34,11 +36,14 @@
 
             <Border Width="1" Background="#555" Margin="6,4"/>
 
-            <Button x:Name="BtnRed" Background="Red" ToolTip="Red"/>
-            <Button x:Name="BtnYellow" Background="Yellow" ToolTip="Yellow"/>
-            <Button x:Name="BtnGreen" Background="LimeGreen" ToolTip="Green"/>
-            <Button x:Name="BtnBlue" Background="DodgerBlue" ToolTip="Blue"/>
-            <Button x:Name="BtnBlack" Background="Black" ToolTip="Black"/>
+            <Button x:Name="BtnColor" Background="Red" ToolTip="Color — click for shades"/>
+            <Popup x:Name="ColorPopup" PlacementTarget="{Binding ElementName=BtnColor}"
+                   Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                <Border Background="#F02B2B2B" CornerRadius="6" Padding="6"
+                        BorderBrush="#666" BorderThickness="1">
+                    <UniformGrid x:Name="SwatchGrid" Columns="5"/>
+                </Border>
+            </Popup>
 
             <Border Width="1" Background="#555" Margin="6,4"/>
 
@@ -55,7 +60,7 @@
 
             <CheckBox x:Name="ChkStartup" Content="Startup" Foreground="White"
                       VerticalAlignment="Center" Margin="4,0"/>
-            <Button x:Name="BtnClose" Content="✕" ToolTip="Exit" Background="#772222"/>
+            <Button x:Name="BtnClose" Content="✕" ToolTip="Hide to tray (Ctrl+Alt+D to return; Exit from the tray icon)" Background="#772222"/>
         </StackPanel>
     </Border>
 </Window>
