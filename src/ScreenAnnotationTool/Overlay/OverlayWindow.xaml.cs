@@ -180,7 +180,7 @@ public partial class OverlayWindow : Window
 
     private void StartText(Point at)
     {
-        _activeText = new TextBox
+        var box = new TextBox
         {
             MinWidth = 40,
             Foreground = new System.Windows.Media.SolidColorBrush(_model.CurrentColor),
@@ -188,23 +188,36 @@ public partial class OverlayWindow : Window
             BorderBrush = new System.Windows.Media.SolidColorBrush(_model.CurrentColor),
             FontSize = 12 + _model.CurrentThickness * 3
         };
-        Canvas.SetLeft(_activeText, at.X);
-        Canvas.SetTop(_activeText, at.Y);
-        DrawCanvas.Children.Add(_activeText);
-        _activeText.Focus();
-        _activeText.KeyDown += (_, ke) =>
+        _activeText = box;
+        Canvas.SetLeft(box, at.X);
+        Canvas.SetTop(box, at.Y);
+        DrawCanvas.Children.Add(box);
+        box.Focus();
+        // Both handlers must check they still belong to the CURRENT box: WPF keeps keyboard
+        // focus on a text box even after it is detached from the tree, so a previous box's
+        // LostFocus can fire later — while a newer box occupies _activeText. Unguarded, that
+        // stale event commits/nulls the new box mid-StartText (NullReference crash).
+        box.KeyDown += (_, ke) =>
         {
-            if (ke.Key == Key.Enter) CommitActiveText();
+            if (ke.Key == Key.Enter && ReferenceEquals(box, _activeText)) CommitActiveText();
         };
-        _activeText.LostFocus += (_, _) => CommitActiveText();
+        box.LostFocus += (_, _) =>
+        {
+            if (ReferenceEquals(box, _activeText)) CommitActiveText();
+        };
+    }
+
+    // Discard the in-progress text box without committing it — used by "clear all",
+    // where committing would resurrect the text the user is trying to wipe.
+    public void CancelActiveText()
+    {
+        DetachActiveText();
     }
 
     private void CommitActiveText()
     {
-        if (_activeText == null) return;
-        var box = _activeText;
-        _activeText = null;
-        DrawCanvas.Children.Remove(box);
+        var box = DetachActiveText();
+        if (box == null) return;
 
         if (!string.IsNullOrWhiteSpace(box.Text))
         {
@@ -218,5 +231,18 @@ public partial class OverlayWindow : Window
             Canvas.SetTop(tb, Canvas.GetTop(box));
             _model.Add(tb);
         }
+    }
+
+    private TextBox? DetachActiveText()
+    {
+        if (_activeText == null) return null;
+        var box = _activeText;
+        _activeText = null;
+        DrawCanvas.Children.Remove(box);
+        // Never leave keyboard focus on the detached element — that is what produces the
+        // delayed stale LostFocus in the first place.
+        if (box.IsKeyboardFocused)
+            Keyboard.ClearFocus();
+        return box;
     }
 }
