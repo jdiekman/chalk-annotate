@@ -38,14 +38,11 @@ read) and passes it to Inno Setup via `/D` define.
 
 ### 2. Single-instance mutex in the app
 
-`App.OnStartup` creates a named mutex `ChalkAnnotationTool` (global to the user
-session). Two purposes:
-
-- The installer's `AppMutex` directive detects a running Chalk and prompts the user
-  to close it before upgrading (files can't be replaced while the exe runs).
-- Side benefit: prevents accidental double-launch (second instance exits quietly).
-
-The mutex is held for the app's lifetime and released on exit.
+Already implemented: `App.OnStartup` creates a named mutex
+`Chalk_SingleInstance_9f1c` (src/ScreenAnnotationTool/App.xaml.cs) that is held for
+the app's lifetime. No app change needed — the installer's `AppMutex` directive
+references this existing name to detect a running Chalk and prompt the user to
+close it before upgrading (files can't be replaced while the exe runs).
 
 ### 3. Installer script — `installer/chalk.iss`
 
