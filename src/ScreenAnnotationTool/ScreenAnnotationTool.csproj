@@ -10,6 +10,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>Chalk</AssemblyName>
     <Product>Chalk</Product>
+    <Version>1.0.0</Version>
     <AssemblyTitle>Chalk</AssemblyTitle>
     <ApplicationIcon>chalk.ico</ApplicationIcon>
     <!-- WinForms is used only for the tray NotifyIcon; the app boots through WPF, so the
