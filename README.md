@@ -7,6 +7,21 @@ Chalk lives in your system tray and out of the way until you need it. Hit a hotk
 transparent draw layer appears over whatever you're doing; mark it up, then toggle back to
 normal — no window juggling, nothing to alt-tab.
 
+## Install
+
+Grab **ChalkSetup-\<version\>.exe** from the
+[latest release](https://github.com/jdiekman/chalk-annotate/releases/latest) and run it —
+no admin rights needed. The installer offers a desktop shortcut, a
+"start Chalk when Windows starts" option, and offers to launch Chalk when it finishes
+(look for the chalk icon in your system tray).
+
+Prefer no installer? **Chalk-\<version\>-portable.exe** on the same page is a single
+standalone exe — copy it anywhere and run it.
+
+> **Windows SmartScreen:** Chalk isn't code-signed (yet), so the first run may show
+> "Windows protected your PC". Click **More info → Run anyway**. This warning fades
+> as the download builds reputation with Microsoft.
+
 ## Features
 
 - **Hotkey-driven** — summon and dismiss the draw layer with a global shortcut, from any app.
@@ -19,7 +34,8 @@ normal — no window juggling, nothing to alt-tab.
   DPI-correct at any display scaling.
 - **System tray** — starts hidden; a tray icon gives you Show / Exit at any time.
 - **Launch on startup** — optional, so it's always ready when you record.
-- Single self-contained `.exe`, no installer, no runtime to install on the target machine.
+- **Easy install** — a small setup wizard, or a single portable `.exe` if you prefer;
+  either way, no .NET runtime to install on the target machine.
 
 ## Hotkeys
 
@@ -65,6 +81,10 @@ The single-file `Chalk.exe` lands in
 `src/ScreenAnnotationTool/bin/Release/net8.0-windows/win-x64/publish/`. Copy it anywhere and
 run it — no .NET install required on the target machine. Tick the **Startup** checkbox (or drop
 a shortcut in your Startup folder) to have it ready whenever you record.
+
+To build the installer too, install [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+(`winget install JRSoftware.InnoSetup`) and run `./build-installer.ps1` — artifacts land in
+`dist/`. Releases are built automatically by GitHub Actions when a `v*` tag is pushed.
 
 ## Tests
 

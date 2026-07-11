@@ -34,7 +34,7 @@ public class AppController
         _hotkeys.HotkeyPressed += OnHotkey;
         _toolbar.DrawToggleRequested += ToggleDraw; // toolbar button mirrors Ctrl+Alt+D
         _toolbar.UndoRequested += () => _model.Undo();
-        _toolbar.ClearRequested += () => _model.Clear();
+        _toolbar.ClearRequested += ClearAll;
         _toolbar.StartupToggled += enabled =>
         {
             try
@@ -96,9 +96,18 @@ public class AppController
                 ToggleDraw();
                 break;
             case HotkeyService.HotkeyClear:
-                _model.Clear();
+                ClearAll();
                 break;
         }
+    }
+
+    private void ClearAll()
+    {
+        // "Clear all" also discards an in-progress text box; committing it here would
+        // add it back to the model right after the wipe (and the stale-focus fallout
+        // of leaving it detached crashed the app — see OverlayWindow.StartText).
+        _overlay.CancelActiveText();
+        _model.Clear();
     }
 
     private void ToggleDraw()
