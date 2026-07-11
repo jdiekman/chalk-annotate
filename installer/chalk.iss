@@ -22,6 +22,7 @@ OutputDir=..\dist
 OutputBaseFilename=ChalkSetup-{#AppVersion}
 SetupIconFile=..\src\ScreenAnnotationTool\chalk.ico
 UninstallDisplayIcon={app}\Chalk.exe
+UninstallDisplayName=Chalk
 ; License shown as an info page (no forced "I accept" step) per spec.
 InfoBeforeFile=..\LICENSE
 ; Matches the mutex created in App.OnStartup — prompts "close Chalk" before upgrade.
