@@ -12,7 +12,7 @@ normal — no window juggling, nothing to alt-tab.
 Grab **ChalkSetup-\<version\>.exe** from the
 [latest release](https://github.com/jdiekman/chalk-annotate/releases/latest) and run it —
 no admin rights needed. The installer offers a desktop shortcut, a
-"start Chalk when Windows starts" option, and launches Chalk when it finishes
+"start Chalk when Windows starts" option, and offers to launch Chalk when it finishes
 (look for the chalk icon in your system tray).
 
 Prefer no installer? **Chalk-\<version\>-portable.exe** on the same page is a single

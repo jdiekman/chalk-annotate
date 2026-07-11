@@ -22,10 +22,12 @@ jobs:
 
       - name: Verify tag matches csproj version
         shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           $version = ([xml](Get-Content src/ScreenAnnotationTool/ScreenAnnotationTool.csproj)).Project.PropertyGroup.Version |
               Where-Object { $_ } | Select-Object -First 1
-          $tag = '${{ github.ref_name }}'.TrimStart('v')
+          $tag = $env:TAG.TrimStart('v')
           if ($tag -ne $version) {
               throw "Tag version '$tag' does not match csproj <Version> '$version'. Bump the csproj or retag."
           }

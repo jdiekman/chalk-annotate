@@ -51,7 +51,7 @@ Inno Setup 6 script. Key directives:
 - `AppId` — fixed GUID so upgrades replace rather than duplicate the install.
 - `PrivilegesRequired=lowest` — per-user, no UAC prompt.
 - `DefaultDirName={localappdata}\Programs\Chalk`.
-- `AppMutex=ChalkAnnotationTool` — close-before-upgrade prompt.
+- `AppMutex=Chalk_SingleInstance_9f1c` — close-before-upgrade prompt.
 - Version, app name, publisher, URL, and license (MIT, shown as info page — not a
   click-through EULA) fed from `/D` defines / repo files.
 - `SetupIconFile` — `chalk.ico`; installer and uninstaller use the app icon.
