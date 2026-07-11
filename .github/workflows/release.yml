@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test
+        run: dotnet test
+
+      - name: Verify tag matches csproj version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content src/ScreenAnnotationTool/ScreenAnnotationTool.csproj)).Project.PropertyGroup.Version |
+              Where-Object { $_ } | Select-Object -First 1
+          $tag = '${{ github.ref_name }}'.TrimStart('v')
+          if ($tag -ne $version) {
+              throw "Tag version '$tag' does not match csproj <Version> '$version'. Bump the csproj or retag."
+          }
+
+      - name: Build installer
+        shell: pwsh
+        run: ./build-installer.ps1
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ChalkSetup-*.exe
+            dist/Chalk-*-portable.exe
+          generate_release_notes: true
