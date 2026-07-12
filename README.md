@@ -18,9 +18,9 @@ no admin rights needed. The installer offers a desktop shortcut, a
 Prefer no installer? **Chalk-\<version\>-portable.exe** on the same page is a single
 standalone exe — copy it anywhere and run it.
 
-> **Windows SmartScreen:** Chalk isn't code-signed (yet), so the first run may show
-> "Windows protected your PC". Click **More info → Run anyway**. This warning fades
-> as the download builds reputation with Microsoft.
+> **Windows SmartScreen:** Check the release notes and Authenticode signature before
+> bypassing any warning. Every release includes `SHA256SUMS.txt` and a GitHub build-provenance
+> attestation so downloaded artifacts can be verified independently.
 
 ## Features
 
@@ -92,8 +92,22 @@ To build the installer too, install [Inno Setup 6](https://jrsoftware.org/isinfo
 dotnet test
 ```
 
-Covers the annotation model, shape factory, settings persistence, and startup toggle. The
-overlay, toolbar, tray, and global hotkeys are interactive and verified by running the app.
+Covers the annotation model, shape factory, settings validation and persistence, startup
+registration, and defensive native-call validation. Full overlay, tray, global-hotkey, and
+mixed-DPI behavior is also verified interactively on Windows.
+
+## Release security
+
+Release dependencies are restored from committed lock files, GitHub Actions are pinned to
+reviewed commits, and release executables receive SHA-256 checksums and GitHub build-provenance
+attestations. `build-installer.ps1` signs both `Chalk.exe` and the installer when these repository
+secrets are configured:
+
+- `CHALK_SIGNING_CERTIFICATE_BASE64` — a base64-encoded Authenticode `.pfx` certificate.
+- `CHALK_SIGNING_CERTIFICATE_PASSWORD` — the certificate password.
+
+Local builds without those environment variables remain possible but print an explicit unsigned
+artifact warning. Never add the certificate or its password to the repository.
 
 ## Tech
 

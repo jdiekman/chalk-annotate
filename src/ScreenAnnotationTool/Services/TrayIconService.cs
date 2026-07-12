@@ -8,22 +8,27 @@ namespace ScreenAnnotationTool.Services;
 public class TrayIconService : IDisposable
 {
     private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
+    private readonly System.Windows.Forms.ContextMenuStrip _menu;
+    private readonly System.Drawing.Icon _icon;
+    private readonly bool _ownsIcon;
+    private bool _disposed;
 
     public event Action? ShowRequested;
     public event Action? ExitRequested;
 
     public TrayIconService()
     {
-        var menu = new System.Windows.Forms.ContextMenuStrip();
-        menu.Items.Add("Show toolbar", null, (_, _) => ShowRequested?.Invoke());
-        menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke());
+        _menu = new System.Windows.Forms.ContextMenuStrip();
+        _menu.Items.Add("Show toolbar", null, (_, _) => ShowRequested?.Invoke());
+        _menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke());
+        (_icon, _ownsIcon) = LoadIcon();
 
         _notifyIcon = new System.Windows.Forms.NotifyIcon
         {
-            Icon = LoadIcon(),
+            Icon = _icon,
             Text = "Chalk",
             Visible = true,
-            ContextMenuStrip = menu
+            ContextMenuStrip = _menu
         };
 
         // Left-click (or double-click) the tray icon shows the toolbar.
@@ -34,7 +39,7 @@ public class TrayIconService : IDisposable
         };
     }
 
-    private static System.Drawing.Icon LoadIcon()
+    private static (System.Drawing.Icon Icon, bool OwnsIcon) LoadIcon()
     {
         // Prefer the embedded chalk.ico, picking the frame that matches the tray size.
         try
@@ -42,7 +47,13 @@ public class TrayIconService : IDisposable
             var res = System.Windows.Application.GetResourceStream(
                 new Uri("pack://application:,,,/chalk.ico"));
             if (res != null)
-                return new System.Drawing.Icon(res.Stream, System.Windows.Forms.SystemInformation.SmallIconSize);
+            {
+                using var stream = res.Stream;
+                using var source = new System.Drawing.Icon(
+                    stream,
+                    System.Windows.Forms.SystemInformation.SmallIconSize);
+                return ((System.Drawing.Icon)source.Clone(), true);
+            }
         }
         catch { /* fall back below */ }
 
@@ -53,16 +64,24 @@ public class TrayIconService : IDisposable
             {
                 var icon = System.Drawing.Icon.ExtractAssociatedIcon(exe);
                 if (icon != null)
-                    return icon;
+                    return (icon, true);
             }
         }
         catch { /* fall back below */ }
-        return System.Drawing.SystemIcons.Application;
+        return (System.Drawing.SystemIcons.Application, false);
     }
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
+        _menu.Dispose();
+        if (_ownsIcon)
+            _icon.Dispose();
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

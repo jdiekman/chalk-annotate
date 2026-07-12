@@ -6,19 +6,16 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          dotnet-version: 8.0.x
-
-      - name: Test
-        run: dotnet test
+          persist-credentials: false
 
       - name: Verify tag matches csproj version
         shell: pwsh
@@ -32,14 +29,48 @@ jobs:
               throw "Tag version '$tag' does not match csproj <Version> '$version'. Bump the csproj or retag."
           }
 
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore locked dependencies
+        run: |
+          dotnet restore ScreenAnnotationTool.sln --locked-mode
+          dotnet restore src/ScreenAnnotationTool/ScreenAnnotationTool.csproj -r win-x64 --locked-mode
+
+      - name: Verify formatting
+        run: dotnet format whitespace ScreenAnnotationTool.sln --verify-no-changes --no-restore
+
+      - name: Test
+        run: dotnet test ScreenAnnotationTool.sln -c Release --no-restore
+
       - name: Build installer
         shell: pwsh
-        run: ./build-installer.ps1
+        env:
+          CHALK_SIGNING_CERTIFICATE_BASE64: ${{ secrets.CHALK_SIGNING_CERTIFICATE_BASE64 }}
+          CHALK_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.CHALK_SIGNING_CERTIFICATE_PASSWORD }}
+        run: ./build-installer.ps1 -NoRestore
+
+      - name: Create SHA-256 checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem dist/Chalk*.exe | Sort-Object Name | ForEach-Object {
+              $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash *$($_.Name)"
+          } | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: |
+            dist/ChalkSetup-*.exe
+            dist/Chalk-*-portable.exe
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
             dist/ChalkSetup-*.exe
             dist/Chalk-*-portable.exe
+            dist/SHA256SUMS.txt
           generate_release_notes: true

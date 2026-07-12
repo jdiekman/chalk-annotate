@@ -13,7 +13,7 @@ public partial class ToolbarWindow : Window
     private readonly AnnotationModel _model;
     private readonly StartupService _startup;
     private bool _suppressStartupEvent = false;
-    private Button[] _toolButtons = Array.Empty<Button>();
+    private readonly Button[] _toolButtons;
     private static readonly Brush SelectedToolBrush = new SolidColorBrush(Color.FromRgb(0x1E, 0x90, 0xFF));
 
     public event Action? UndoRequested;
@@ -60,7 +60,8 @@ public partial class ToolbarWindow : Window
         BtnClear.Click += (_, _) => ClearRequested?.Invoke();
         BtnClose.Click += (_, _) => HideRequested?.Invoke();
 
-        ChkStartup.IsChecked = _startup.IsEnabled();
+        try { ChkStartup.IsChecked = _startup.IsEnabled(); }
+        catch { ChkStartup.IsChecked = false; }
         ChkStartup.Checked += (_, _) =>
         {
             if (_suppressStartupEvent) return;
@@ -144,7 +145,17 @@ public partial class ToolbarWindow : Window
     public void ReflectStartupState()
     {
         _suppressStartupEvent = true;
-        ChkStartup.IsChecked = _startup.IsEnabled();
-        _suppressStartupEvent = false;
+        try
+        {
+            ChkStartup.IsChecked = _startup.IsEnabled();
+        }
+        catch
+        {
+            ChkStartup.IsChecked = false;
+        }
+        finally
+        {
+            _suppressStartupEvent = false;
+        }
     }
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -19,6 +21,7 @@ public class AppController
     private readonly ToolbarWindow _toolbar;
     private readonly TrayIconService _tray = new();
     private AppSettings _settings = new();
+    private bool _hasStarted;
     private bool _isShuttingDown;
     private bool _reallyExiting;
 
@@ -43,10 +46,9 @@ public class AppController
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(
+                Dialogs.Show(
                     "Couldn't update the Windows startup setting:\n" + ex.Message,
-                    "Chalk", System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Warning);
+                    MessageBoxImage.Warning);
                 _toolbar.ReflectStartupState();
             }
         };
@@ -70,8 +72,7 @@ public class AppController
     public void Start()
     {
         _settings = _settingsService.Load();
-        _toolbar.Left = _settings.ToolbarLeft;
-        _toolbar.Top = _settings.ToolbarTop;
+        SetToolbarPosition(_settings.ToolbarLeft, _settings.ToolbarTop);
         try { _model.CurrentColor = (Color)ColorConverter.ConvertFromString(_settings.ColorHex); }
         catch { _model.CurrentColor = Colors.Red; }
         _model.CurrentThickness = _settings.Thickness;
@@ -84,8 +85,23 @@ public class AppController
         _toolbar.SetDrawModeIndicator(false);
         _toolbar.UpdateColorSwatch();
 
-        _hotkeys.Register(HotkeyService.HotkeyToggleDraw, ModifierKeys.Control | ModifierKeys.Alt, Key.D);
-        _hotkeys.Register(HotkeyService.HotkeyClear, ModifierKeys.Control | ModifierKeys.Alt, Key.X);
+        // A hotkey already owned by another app is an environmental fact, not a fatal
+        // error: run without it and tell the user, instead of refusing to start.
+        var unavailable = new List<string>();
+        if (!_hotkeys.Register(HotkeyService.HotkeyToggleDraw, ModifierKeys.Control | ModifierKeys.Alt, Key.D))
+            unavailable.Add("Ctrl+Alt+D (draw)");
+        if (!_hotkeys.Register(HotkeyService.HotkeyClear, ModifierKeys.Control | ModifierKeys.Alt, Key.X))
+            unavailable.Add("Ctrl+Alt+X (clear)");
+        if (unavailable.Count > 0)
+        {
+            var list = string.Join(" and ", unavailable);
+            Trace.TraceWarning("Hotkeys unavailable (in use by another app): {0}", list);
+            Dialogs.Show(
+                $"Another application is already using {list}.\n" +
+                "Chalk will run without that hotkey; the toolbar buttons still work.",
+                MessageBoxImage.Warning);
+        }
+        _hasStarted = true;
     }
 
     private void OnHotkey(int id)
@@ -103,27 +119,34 @@ public class AppController
 
     private void ClearAll()
     {
-        // "Clear all" also discards an in-progress text box; committing it here would
-        // add it back to the model right after the wipe (and the stale-focus fallout
-        // of leaving it detached crashed the app — see OverlayWindow.StartText).
-        _overlay.CancelActiveText();
+        _overlay.CancelCurrentOperation();
         _model.Clear();
     }
 
     private void ToggleDraw()
     {
         if (_overlay.IsDrawing)
-        {
-            _overlay.ExitDrawMode();
-            _toolbar.SetDrawModeIndicator(false);
-        }
+            _ = ExitDrawModeSafely();
         else
+            EnterDrawModeSafely();
+    }
+
+    // Mirrors ExitDrawModeSafely: the one guarded doorway into draw mode, so any
+    // future call site gets the same protection.
+    private void EnterDrawModeSafely()
+    {
+        // Reveal the toolbar (if hidden in the tray) and start drawing immediately.
+        if (!_toolbar.IsVisible)
+            _toolbar.Show();
+        try
         {
-            // Reveal the toolbar (if hidden in the tray) and start drawing immediately.
-            if (!_toolbar.IsVisible)
-                _toolbar.Show();
             _overlay.EnterDrawMode();
             _toolbar.SetDrawModeIndicator(true);
+        }
+        catch (Exception ex)
+        {
+            _toolbar.SetDrawModeIndicator(false);
+            Dialogs.Show("Chalk couldn't make the overlay interactive:\n" + ex.Message);
         }
     }
 
@@ -139,8 +162,8 @@ public class AppController
         // Leaving the toolbar shouldn't strand an interactive, invisible overlay.
         if (_overlay.IsDrawing)
         {
-            _overlay.ExitDrawMode();
-            _toolbar.SetDrawModeIndicator(false);
+            if (!ExitDrawModeSafely())
+                return;
         }
         _toolbar.Hide();
     }
@@ -156,8 +179,7 @@ public class AppController
     {
         if (e.Key == Key.Escape)
         {
-            _overlay.ExitDrawMode();
-            _toolbar.SetDrawModeIndicator(false);
+            _ = ExitDrawModeSafely();
             e.Handled = true;
         }
         else if (e.Key == Key.Z &&
@@ -176,22 +198,62 @@ public class AppController
         if (_isShuttingDown) return;
         _isShuttingDown = true;
 
+        // Settings persistence is best-effort; teardown below must always run first —
+        // a modal dialog must never hold hotkeys, the tray icon, or the mutex hostage.
+        string? saveError = null;
         try
         {
-            _settings.ToolbarLeft = _toolbar.Left;
-            _settings.ToolbarTop = _toolbar.Top;
-            _settings.ColorHex = _model.CurrentColor.ToString();
-            _settings.Thickness = _model.CurrentThickness;
-            _settings.LaunchOnStartup = _startup.IsEnabled();
-            _settingsService.Save(_settings);
+            if (_hasStarted)
+            {
+                _settings.ToolbarLeft = _toolbar.Left;
+                _settings.ToolbarTop = _toolbar.Top;
+                _settings.ColorHex = _model.CurrentColor.ToString();
+                _settings.Thickness = _model.CurrentThickness;
+                _settingsService.Save(_settings);
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // Settings persistence is best-effort; teardown below must still happen.
+            Trace.TraceError("Chalk couldn't save its settings: {0}", ex);
+            saveError = ex.Message;
         }
 
+        _reallyExiting = true;
         _hotkeys.Dispose();
         _tray.Dispose();
+        _toolbar.Close();
         _overlay.Close();
+
+        if (saveError != null && !Application.Current.Dispatcher.HasShutdownStarted)
+            Dialogs.Show("Chalk couldn't save its settings:\n" + saveError, MessageBoxImage.Warning);
+    }
+
+    private bool ExitDrawModeSafely()
+    {
+        try
+        {
+            _overlay.ExitDrawMode();
+            _toolbar.SetDrawModeIndicator(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Any failure while leaving a full-screen interactive overlay is unsafe.
+            _overlay.Hide();
+            Dialogs.Show("Chalk couldn't stop the overlay safely and will exit:\n" + ex.Message);
+            ExitApp();
+            return false;
+        }
+    }
+
+    private void SetToolbarPosition(double left, double top)
+    {
+        double minLeft = SystemParameters.VirtualScreenLeft;
+        double minTop = SystemParameters.VirtualScreenTop;
+        double maxLeft = minLeft + Math.Max(0, SystemParameters.VirtualScreenWidth - 100);
+        double maxTop = minTop + Math.Max(0, SystemParameters.VirtualScreenHeight - 40);
+
+        _toolbar.Left = Math.Clamp(left, minLeft, maxLeft);
+        _toolbar.Top = Math.Clamp(top, minTop, maxTop);
     }
 }

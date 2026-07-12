@@ -23,22 +23,37 @@ public class StartupService
             Registry.CurrentUser,
             @"Software\Microsoft\Windows\CurrentVersion\Run",
             "Chalk",
-            Environment.ProcessPath ?? "");
+            Environment.ProcessPath ?? throw new InvalidOperationException("The Chalk executable path is unavailable."));
 
     public bool IsEnabled()
     {
         using var key = _rootKey.OpenSubKey(_subKeyPath, writable: false);
         var value = key?.GetValue(_valueName) as string;
-        return string.Equals(value, _exePath, StringComparison.OrdinalIgnoreCase);
+        if (value == null)
+            return false;
+
+        var command = value.Trim();
+        return string.Equals(command, _exePath, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(command, QuoteExecutable(_exePath), StringComparison.OrdinalIgnoreCase);
     }
 
     public void SetEnabled(bool enabled)
     {
         using var key = _rootKey.CreateSubKey(_subKeyPath, writable: true);
-        if (key == null) return;
+        if (key == null)
+            throw new InvalidOperationException("Windows did not open the startup registry key.");
         if (enabled)
-            key.SetValue(_valueName, _exePath);
+            key.SetValue(_valueName, QuoteExecutable(_exePath), RegistryValueKind.String);
         else if (key.GetValue(_valueName) != null)
             key.DeleteValue(_valueName);
+    }
+
+    private static string QuoteExecutable(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new InvalidOperationException("The Chalk executable path is empty.");
+        if (path.Contains('"'))
+            throw new InvalidOperationException("The Chalk executable path contains an invalid quote character.");
+        return $"\"{path}\"";
     }
 }
