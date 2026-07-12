@@ -16,7 +16,7 @@ public static class ShapeFactory
         {
             Width = Math.Abs(end.X - start.X),
             Height = Math.Abs(end.Y - start.Y),
-            Stroke = new SolidColorBrush(color),
+            Stroke = CreateBrush(color),
             StrokeThickness = thickness,
             Fill = Brushes.Transparent
         };
@@ -33,7 +33,7 @@ public static class ShapeFactory
         {
             Width = Math.Abs(end.X - start.X),
             Height = Math.Abs(end.Y - start.Y),
-            Stroke = new SolidColorBrush(color),
+            Stroke = CreateBrush(color),
             StrokeThickness = thickness,
             Fill = Brushes.Transparent
         };
@@ -61,11 +61,12 @@ public static class ShapeFactory
 
         geometry.Children.Add(new LineGeometry(end, p1));
         geometry.Children.Add(new LineGeometry(end, p2));
+        geometry.Freeze();
 
         return new Path
         {
             Data = geometry,
-            Stroke = new SolidColorBrush(color),
+            Stroke = CreateBrush(color),
             StrokeThickness = thickness,
             StrokeStartLineCap = PenLineCap.Round,
             StrokeEndLineCap = PenLineCap.Round
@@ -76,7 +77,7 @@ public static class ShapeFactory
     {
         var pl = new Polyline
         {
-            Stroke = new SolidColorBrush(color),
+            Stroke = CreateBrush(color),
             StrokeThickness = thickness,
             StrokeLineJoin = PenLineJoin.Round,
             StrokeStartLineCap = PenLineCap.Round,
@@ -84,5 +85,12 @@ public static class ShapeFactory
         };
         pl.Points.Add(start);
         return pl;
+    }
+
+    private static SolidColorBrush CreateBrush(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
     }
 }

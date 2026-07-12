@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -51,16 +52,30 @@ public static class NativeMethods
 
     public static void MakeClickThrough(IntPtr hwnd)
     {
-        int ex = GetWindowLong(hwnd, GWL_EXSTYLE);
-        SetWindowLong(hwnd, GWL_EXSTYLE, ex | WS_EX_LAYERED | WS_EX_TRANSPARENT);
+        UpdateExtendedStyle(hwnd, ex => ex | WS_EX_LAYERED | WS_EX_TRANSPARENT);
     }
 
     public static void MakeInteractive(IntPtr hwnd)
     {
-        int ex = GetWindowLong(hwnd, GWL_EXSTYLE);
-        ex |= WS_EX_LAYERED;
-        ex &= ~WS_EX_TRANSPARENT;
-        SetWindowLong(hwnd, GWL_EXSTYLE, ex);
+        UpdateExtendedStyle(hwnd, ex => (ex | WS_EX_LAYERED) & ~WS_EX_TRANSPARENT);
+    }
+
+    private static void UpdateExtendedStyle(IntPtr hwnd, Func<int, int> update)
+    {
+        if (hwnd == IntPtr.Zero)
+            throw new ArgumentException("A valid window handle is required.", nameof(hwnd));
+
+        Marshal.SetLastPInvokeError(0);
+        int current = GetWindowLong(hwnd, GWL_EXSTYLE);
+        int error = Marshal.GetLastPInvokeError();
+        if (current == 0 && error != 0)
+            throw new Win32Exception(error, "Could not read the overlay window style.");
+
+        Marshal.SetLastPInvokeError(0);
+        int previous = SetWindowLong(hwnd, GWL_EXSTYLE, update(current));
+        error = Marshal.GetLastPInvokeError();
+        if (previous == 0 && error != 0)
+            throw new Win32Exception(error, "Could not update the overlay window style.");
     }
 
     public static Rect GetMonitorBoundsFromCursor()

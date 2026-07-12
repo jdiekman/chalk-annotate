@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Shapes;
 using ScreenAnnotationTool.Drawing;
 using ScreenAnnotationTool.Interop;
@@ -11,6 +12,9 @@ namespace ScreenAnnotationTool.Overlay;
 
 public partial class OverlayWindow : Window
 {
+    private const double MinimumFreehandPointDistance = 1.5;
+    private const int MaximumFreehandPoints = 8192;
+
     private readonly AnnotationModel _model;
     private IntPtr _hwnd;
 
@@ -26,18 +30,30 @@ public partial class OverlayWindow : Window
     {
         InitializeComponent();
         _model = model;
-        _model.Changed += (_, _) => SyncCanvas();
+        _model.Changed += OnModelChanged;
 
         SourceInitialized += OnSourceInitialized;
         DrawCanvas.MouseLeftButtonDown += OnMouseDown;
         DrawCanvas.MouseMove += OnMouseMove;
         DrawCanvas.MouseLeftButtonUp += OnMouseUp;
+        DrawCanvas.LostMouseCapture += OnLostMouseCapture;
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
         _hwnd = new WindowInteropHelper(this).Handle;
-        NativeMethods.MakeClickThrough(_hwnd); // off by default
+        try
+        {
+            NativeMethods.MakeClickThrough(_hwnd); // off by default
+        }
+        catch (Exception ex)
+        {
+            // Degrade instead of aborting launch: hide the overlay so it can't intercept
+            // input; Enter/ExitDrawMode re-attempt the style change under their own guards.
+            System.Diagnostics.Trace.TraceWarning(
+                "Chalk couldn't make the overlay click-through at startup: {0}", ex);
+            Hide();
+        }
     }
 
     // Show the overlay at startup in click-through mode (transparent, harmless) so it exists
@@ -61,48 +77,56 @@ public partial class OverlayWindow : Window
         Height = bounds.Height;
 
         Show();
-        IsDrawing = true;
         NativeMethods.MakeInteractive(_hwnd);
+        IsDrawing = true;
         Activate();
     }
 
     public void ExitDrawMode()
     {
-        CommitActiveText();
-
-        if (_dragging)
+        try
         {
-            DrawCanvas.ReleaseMouseCapture();
-            _dragging = false;
+            // Cancel transient work BEFORE Clear (same order as ClearAll) so the Cleared
+            // handler doesn't re-add a doomed preview/stroke only to remove it again.
+            // Committing text first would be pointless: Clear wipes it immediately.
+            CancelCurrentOperation();
+            _model.Clear(); // wipe annotations when leaving draw mode
         }
-        if (_preview != null)
+        finally
         {
-            DrawCanvas.Children.Remove(_preview);
-            _preview = null;
+            CancelActiveStroke();
+            IsDrawing = false;
+            if (_hwnd != IntPtr.Zero)
+            {
+                try
+                {
+                    NativeMethods.MakeClickThrough(_hwnd);
+                }
+                catch
+                {
+                    // Never leave a topmost, full-screen window intercepting input.
+                    Hide();
+                    throw;
+                }
+            }
         }
-        if (_freehand != null)
-        {
-            DrawCanvas.Children.Remove(_freehand);
-            _freehand = null;
-        }
-
-        IsDrawing = false;
-        if (_hwnd != IntPtr.Zero)
-            NativeMethods.MakeClickThrough(_hwnd);
-
-        _model.Clear(); // wipe annotations when leaving draw mode
     }
 
-    private void SyncCanvas()
+    private void OnModelChanged(object? sender, AnnotationChangedEventArgs e)
     {
-        // Rebuild committed annotations; keep any in-progress preview/text.
-        DrawCanvas.Children.Clear();
-        foreach (var a in _model.Annotations)
-            if (a is UIElement el)
-                DrawCanvas.Children.Add(el);
-        if (_preview != null) DrawCanvas.Children.Add(_preview);
-        if (_freehand != null) DrawCanvas.Children.Add(_freehand);
-        if (_activeText != null) DrawCanvas.Children.Add(_activeText);
+        switch (e.Kind)
+        {
+            case AnnotationChangeKind.Added when e.Annotation != null:
+                DrawCanvas.Children.Add(e.Annotation);
+                break;
+            case AnnotationChangeKind.Removed when e.Annotation != null:
+                DrawCanvas.Children.Remove(e.Annotation);
+                break;
+            case AnnotationChangeKind.Cleared:
+                DrawCanvas.Children.Clear();
+                AddTransientElements();
+                break;
+        }
     }
 
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
@@ -122,7 +146,8 @@ public partial class OverlayWindow : Window
             DrawCanvas.Children.Add(_freehand);
         }
         _dragging = true;
-        DrawCanvas.CaptureMouse();
+        if (!DrawCanvas.CaptureMouse())
+            CancelActiveStroke();
     }
 
     private void OnMouseMove(object sender, MouseEventArgs e)
@@ -132,7 +157,7 @@ public partial class OverlayWindow : Window
 
         if (_model.CurrentTool == ToolKind.Freehand)
         {
-            _freehand?.Points.Add(p);
+            AddFreehandPoint(p, force: false);
             return;
         }
 
@@ -142,8 +167,8 @@ public partial class OverlayWindow : Window
         _preview = _model.CurrentTool switch
         {
             ToolKind.Rectangle => ShapeFactory.CreateRectangle(_start, p, _model.CurrentColor, _model.CurrentThickness),
-            ToolKind.Ellipse   => ShapeFactory.CreateEllipse(_start, p, _model.CurrentColor, _model.CurrentThickness),
-            ToolKind.Arrow     => ShapeFactory.CreateArrow(_start, p, _model.CurrentColor, _model.CurrentThickness),
+            ToolKind.Ellipse => ShapeFactory.CreateEllipse(_start, p, _model.CurrentColor, _model.CurrentThickness),
+            ToolKind.Arrow => ShapeFactory.CreateArrow(_start, p, _model.CurrentColor, _model.CurrentThickness),
             _ => null
         };
         if (_preview != null)
@@ -160,6 +185,7 @@ public partial class OverlayWindow : Window
         {
             if (_freehand != null)
             {
+                AddFreehandPoint(e.GetPosition(DrawCanvas), force: true);
                 var f = _freehand;
                 _freehand = null;
                 DrawCanvas.Children.Remove(f);
@@ -209,9 +235,10 @@ public partial class OverlayWindow : Window
 
     // Discard the in-progress text box without committing it — used by "clear all",
     // where committing would resurrect the text the user is trying to wipe.
-    public void CancelActiveText()
+    public void CancelCurrentOperation()
     {
         DetachActiveText();
+        CancelActiveStroke();
     }
 
     private void CommitActiveText()
@@ -244,5 +271,64 @@ public partial class OverlayWindow : Window
         if (box.IsKeyboardFocused)
             Keyboard.ClearFocus();
         return box;
+    }
+
+    private void CancelActiveStroke()
+    {
+        _dragging = false;
+        if (DrawCanvas.IsMouseCaptured)
+            DrawCanvas.ReleaseMouseCapture();
+
+        if (_preview != null)
+            DrawCanvas.Children.Remove(_preview);
+        if (_freehand != null)
+            DrawCanvas.Children.Remove(_freehand);
+        _preview = null;
+        _freehand = null;
+    }
+
+    private void OnLostMouseCapture(object sender, MouseEventArgs e)
+    {
+        if (_dragging)
+            CancelActiveStroke();
+    }
+
+    private void AddFreehandPoint(Point point, bool force)
+    {
+        if (_freehand == null)
+            return;
+
+        Point last = _freehand.Points[^1];
+        Vector delta = point - last;
+        double minimumSquared = MinimumFreehandPointDistance * MinimumFreehandPointDistance;
+        if (!force && delta.LengthSquared < minimumSquared)
+            return;
+        if (force && point == last)
+            return;
+
+        _freehand.Points.Add(point);
+        if (_freehand.Points.Count > MaximumFreehandPoints)
+            SimplifyFreehandPoints(_freehand);
+    }
+
+    private static void SimplifyFreehandPoints(Polyline freehand)
+    {
+        var source = freehand.Points;
+        var simplified = new PointCollection((source.Count / 2) + 1);
+        for (int i = 0; i < source.Count; i += 2)
+            simplified.Add(source[i]);
+        if (simplified[^1] != source[^1])
+            simplified.Add(source[^1]);
+        freehand.Points = simplified;
+    }
+
+    private void AddTransientElements()
+    {
+        if (_preview != null)
+            DrawCanvas.Children.Add(_preview);
+        if (_freehand != null)
+            DrawCanvas.Children.Add(_freehand);
+        if (_activeText != null)
+            DrawCanvas.Children.Add(_activeText);
     }
 }

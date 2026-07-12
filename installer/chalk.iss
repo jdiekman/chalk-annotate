@@ -43,9 +43,8 @@ Name: "{autoprograms}\Chalk"; Filename: "{app}\Chalk.exe"
 Name: "{autodesktop}\Chalk"; Filename: "{app}\Chalk.exe"; Tasks: desktopicon
 
 [Registry]
-; ValueData is deliberately UNQUOTED: StartupService.IsEnabled() string-compares it
-; against Environment.ProcessPath, and a quoted value would never match.
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Chalk"; ValueData: "{app}\Chalk.exe"; Tasks: startup; Flags: uninsdeletevalue
+; Quote the executable so Windows never treats a space-containing path as multiple commands.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Chalk"; ValueData: """{app}\Chalk.exe"""; Tasks: startup; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\Chalk.exe"; Description: "Launch Chalk"; Flags: postinstall nowait skipifsilent
