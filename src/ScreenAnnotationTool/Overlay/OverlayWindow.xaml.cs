@@ -60,23 +60,26 @@ public partial class OverlayWindow : Window
     // and can act as the owner of the toolbar window (keeping the toolbar always above it).
     public void ShowOverlay()
     {
-        var bounds = NativeMethods.GetMonitorBoundsFromCursor();
-        Left = bounds.Left;
-        Top = bounds.Top;
-        Width = bounds.Width;
-        Height = bounds.Height;
-        Show(); // SourceInitialized applies click-through by default
+        Show(); // SourceInitialized applies click-through by default and sets _hwnd
+        try
+        {
+            NativeMethods.MoveToMonitorUnderCursor(_hwnd);
+        }
+        catch (Exception ex)
+        {
+            // Startup placement is cosmetic while click-through; EnterDrawMode retries.
+            System.Diagnostics.Trace.TraceWarning(
+                "Chalk couldn't position the overlay at startup: {0}", ex);
+        }
     }
 
     public void EnterDrawMode()
     {
-        var bounds = NativeMethods.GetMonitorBoundsFromCursor();
-        Left = bounds.Left;
-        Top = bounds.Top;
-        Width = bounds.Width;
-        Height = bounds.Height;
-
         Show();
+        // Positioned via SetWindowPos in physical pixels, NOT via Left/Top/Width/Height:
+        // WPF's DIP conversion double-scaled the X position on a scaled secondary
+        // monitor, leaving most of it uncovered so clicks fell through to the app below.
+        NativeMethods.MoveToMonitorUnderCursor(_hwnd);
         NativeMethods.MakeInteractive(_hwnd);
         IsDrawing = true;
         Activate();
