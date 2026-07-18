@@ -35,7 +35,7 @@ public class AppController
         _toolbar = new ToolbarWindow(_model, _startup);
 
         _hotkeys.HotkeyPressed += OnHotkey;
-        _toolbar.DrawToggleRequested += ToggleDraw; // toolbar button mirrors Ctrl+Alt+D
+        _toolbar.DrawToggleRequested += ToggleDraw; // toolbar button mirrors Ctrl+Alt+Z
         _toolbar.UndoRequested += () => _model.Undo();
         _toolbar.ClearRequested += ClearAll;
         _toolbar.StartupToggled += enabled =>
@@ -79,7 +79,7 @@ public class AppController
 
         // Show the overlay first (click-through) so the toolbar can be its owned window,
         // guaranteeing the toolbar always stays above the overlay and remains clickable.
-        // The toolbar itself starts HIDDEN in the tray — Ctrl+Alt+D or the tray icon reveals it.
+        // The toolbar itself starts HIDDEN in the tray — Ctrl+Alt+Z or the tray icon reveals it.
         _overlay.ShowOverlay();
         _toolbar.Owner = _overlay;
         _toolbar.SetDrawModeIndicator(false);
@@ -88,8 +88,8 @@ public class AppController
         // A hotkey already owned by another app is an environmental fact, not a fatal
         // error: run without it and tell the user, instead of refusing to start.
         var unavailable = new List<string>();
-        if (!_hotkeys.Register(HotkeyService.HotkeyToggleDraw, ModifierKeys.Control | ModifierKeys.Alt, Key.D))
-            unavailable.Add("Ctrl+Alt+D (draw)");
+        if (!_hotkeys.Register(HotkeyService.HotkeyToggleDraw, ModifierKeys.Control | ModifierKeys.Alt, Key.Z))
+            unavailable.Add("Ctrl+Alt+Z (draw)");
         if (!_hotkeys.Register(HotkeyService.HotkeyClear, ModifierKeys.Control | ModifierKeys.Alt, Key.X))
             unavailable.Add("Ctrl+Alt+X (clear)");
         if (unavailable.Count > 0)
