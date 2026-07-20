@@ -10,6 +10,7 @@ public class HotkeyService : IDisposable
 {
     public const int HotkeyToggleDraw = 1;
     public const int HotkeyClear = 2;
+    public const int HotkeyCapture = 3;
 
     private const int WM_HOTKEY = 0x0312;
     private const uint MOD_NOREPEAT = 0x4000;

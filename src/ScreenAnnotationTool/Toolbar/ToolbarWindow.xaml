@@ -6,6 +6,7 @@
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="True"
+        ShowActivated="False"
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
         Icon="/chalk.ico"
@@ -55,6 +56,7 @@
 
             <Button x:Name="BtnUndo" Content="⤺" ToolTip="Undo (Ctrl+Z)"/>
             <Button x:Name="BtnClear" Content="🗑" ToolTip="Clear all (Ctrl+Alt+X)"/>
+            <Button x:Name="BtnCapture" Content="📷" ToolTip="Capture a region to PNG + clipboard (Ctrl+Alt+C)"/>
 
             <Border Width="1" Background="#555" Margin="6,4"/>
 
