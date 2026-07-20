@@ -18,6 +18,7 @@ public partial class ToolbarWindow : Window
 
     public event Action? UndoRequested;
     public event Action? ClearRequested;
+    public event Action? CaptureRequested;
     public event Action<bool>? StartupToggled;
     public event Action? HideRequested;
     public event Action? DrawToggleRequested;
@@ -58,6 +59,7 @@ public partial class ToolbarWindow : Window
         BtnToggleDraw.Click += (_, _) => DrawToggleRequested?.Invoke();
         BtnUndo.Click += (_, _) => UndoRequested?.Invoke();
         BtnClear.Click += (_, _) => ClearRequested?.Invoke();
+        BtnCapture.Click += (_, _) => CaptureRequested?.Invoke();
         BtnClose.Click += (_, _) => HideRequested?.Invoke();
 
         try { ChkStartup.IsChecked = _startup.IsEnabled(); }

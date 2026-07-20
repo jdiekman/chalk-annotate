@@ -43,8 +43,9 @@ standalone exe — copy it anywhere and run it.
 |--------|--------|
 | **Ctrl + Alt + Z** | Start/stop drawing (shows the toolbar if hidden) |
 | **Ctrl + Alt + X** | Clear all annotations |
+| **Ctrl + Alt + C** | Capture a region of the screen to PNG + clipboard |
 | **Ctrl + Z** | Undo the last annotation (while drawing) |
-| **Esc** | Stop drawing |
+| **Esc** | Stop drawing (or cancel an in-progress capture selection) |
 
 The round dot on the left of the toolbar does the same thing as **Ctrl + Alt + Z** — click it
 to start/stop drawing; it glows green while drawing.
@@ -56,6 +57,9 @@ to start/stop drawing; it glows green while drawing.
   with the mouse; pick a tool, color, and thickness from the toolbar.
 - **Ctrl + Alt + Z** again (or **Esc**, or the toolbar dot) stops drawing and clears the marks;
   your mouse returns to normal and clicks pass through to the app underneath.
+- The **📷** button (or **Ctrl + Alt + C**) captures your annotations: drag a rectangle over
+  what you want, and Chalk saves it — annotations included — as a PNG in `Pictures\Chalk`
+  and puts it on the clipboard, ready to paste. The toolbar hides itself for the shot.
 - The **✕** button hides the toolbar back to the tray (the app keeps running). Bring it back
   with the hotkey or by clicking the tray icon.
 - **Exit** the app from the tray icon's right-click menu.

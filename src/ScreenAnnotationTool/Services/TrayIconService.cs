@@ -71,6 +71,14 @@ public class TrayIconService : IDisposable
         return (System.Drawing.SystemIcons.Application, false);
     }
 
+    // Non-blocking toast near the tray — used for "capture saved" style feedback that
+    // must not steal focus or interrupt an annotation session.
+    public void ShowNotification(string title, string text)
+    {
+        if (_disposed) return;
+        _notifyIcon.ShowBalloonTip(3000, title, text, System.Windows.Forms.ToolTipIcon.Info);
+    }
+
     public void Dispose()
     {
         if (_disposed)

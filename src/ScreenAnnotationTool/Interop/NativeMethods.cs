@@ -55,6 +55,9 @@ public static class NativeMethods
     [DllImport("user32.dll")]
     private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
     private const int SM_CXSCREEN = 0;
     private const int SM_CYSCREEN = 1;
 
@@ -118,6 +121,20 @@ public static class NativeMethods
             }
         }
         return (0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+    }
+
+    // Physical (device-pixel) rect of a window — used to map overlay-canvas points to
+    // screen pixels for region capture without any DIP conversion.
+    public static (int Left, int Top, int Width, int Height) GetWindowPhysicalRect(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+            throw new ArgumentException("A valid window handle is required.", nameof(hwnd));
+        if (!GetWindowRect(hwnd, out RECT r))
+        {
+            throw new Win32Exception(
+                Marshal.GetLastPInvokeError(), "Could not read the overlay window bounds.");
+        }
+        return (r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
     }
 
     // Position the overlay over the monitor under the cursor using raw device pixels,

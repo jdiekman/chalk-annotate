@@ -38,6 +38,8 @@ public class AppController
         _toolbar.DrawToggleRequested += ToggleDraw; // toolbar button mirrors Ctrl+Alt+Z
         _toolbar.UndoRequested += () => _model.Undo();
         _toolbar.ClearRequested += ClearAll;
+        _toolbar.CaptureRequested += StartCapture;
+        _overlay.CaptureRegionSelected += OnCaptureRegionSelected;
         _toolbar.StartupToggled += enabled =>
         {
             try
@@ -92,6 +94,8 @@ public class AppController
             unavailable.Add("Ctrl+Alt+Z (draw)");
         if (!_hotkeys.Register(HotkeyService.HotkeyClear, ModifierKeys.Control | ModifierKeys.Alt, Key.X))
             unavailable.Add("Ctrl+Alt+X (clear)");
+        if (!_hotkeys.Register(HotkeyService.HotkeyCapture, ModifierKeys.Control | ModifierKeys.Alt, Key.C))
+            unavailable.Add("Ctrl+Alt+C (capture)");
         if (unavailable.Count > 0)
         {
             var list = string.Join(" and ", unavailable);
@@ -114,6 +118,46 @@ public class AppController
             case HotkeyService.HotkeyClear:
                 ClearAll();
                 break;
+            case HotkeyService.HotkeyCapture:
+                StartCapture();
+                break;
+        }
+    }
+
+    private void StartCapture()
+    {
+        if (!_overlay.IsDrawing)
+        {
+            EnterDrawModeSafely();
+            if (!_overlay.IsDrawing) return; // enter failed; dialog already shown
+        }
+        _overlay.BeginCaptureRegionSelection();
+    }
+
+    private async void OnCaptureRegionSelected(Int32Rect region)
+    {
+        // The marquee is already gone; the toolbar must vanish too, and both removals
+        // must reach the screen (render + DWM composition) before the blit.
+        bool toolbarWasVisible = _toolbar.IsVisible;
+        if (toolbarWasVisible)
+            _toolbar.Hide();
+        try
+        {
+            await System.Windows.Threading.Dispatcher.Yield(
+                System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            await System.Threading.Tasks.Task.Delay(120);
+            string path = CaptureService.CaptureToFileAndClipboard(region);
+            _tray.ShowNotification("Capture saved", path + " (also on the clipboard)");
+        }
+        catch (Exception ex)
+        {
+            Dialogs.Show("Chalk couldn't capture the screen:\n" + ex.Message,
+                MessageBoxImage.Warning);
+        }
+        finally
+        {
+            if (toolbarWasVisible)
+                _toolbar.Show(); // ShowActivated=False: doesn't steal focus mid-session
         }
     }
 
@@ -179,6 +223,13 @@ public class AppController
     {
         if (e.Key == Key.Escape)
         {
+            // First Escape backs out of an in-progress capture selection; only a
+            // second Escape leaves draw mode.
+            if (_overlay.CancelCaptureRegionSelection())
+            {
+                e.Handled = true;
+                return;
+            }
             _ = ExitDrawModeSafely();
             e.Handled = true;
         }

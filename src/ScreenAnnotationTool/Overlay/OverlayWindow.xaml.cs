@@ -24,7 +24,14 @@ public partial class OverlayWindow : Window
     private Polyline? _freehand;  // active freehand polyline
     private TextBox? _activeText; // active text entry box
 
+    private bool _selectingCapture;            // capture-selection mode active
+    private Rectangle? _captureBandBack;       // dark backing stroke of the marquee
+    private Rectangle? _captureBandFront;      // white dashed stroke on top
+
     public bool IsDrawing { get; private set; }
+
+    // Raised with the selected region in physical screen pixels.
+    public event Action<Int32Rect>? CaptureRegionSelected;
 
     public OverlayWindow(AnnotationModel model)
     {
@@ -132,9 +139,83 @@ public partial class OverlayWindow : Window
         }
     }
 
+    // Arm capture-selection: the next drag draws a marquee instead of an annotation.
+    public void BeginCaptureRegionSelection()
+    {
+        if (!IsDrawing || _selectingCapture) return;
+        CommitActiveText();
+        CancelActiveStroke();
+        _selectingCapture = true;
+        DrawCanvas.Cursor = Cursors.Cross;
+    }
+
+    // Returns true when a selection was actually in progress (lets Escape cancel the
+    // selection without also leaving draw mode).
+    public bool CancelCaptureRegionSelection()
+    {
+        if (!_selectingCapture) return false;
+        _selectingCapture = false;
+        _dragging = false;
+        if (DrawCanvas.IsMouseCaptured)
+            DrawCanvas.ReleaseMouseCapture();
+        RemoveCaptureBand();
+        DrawCanvas.Cursor = null;
+        return true;
+    }
+
+    private void RemoveCaptureBand()
+    {
+        if (_captureBandBack != null)
+            DrawCanvas.Children.Remove(_captureBandBack);
+        if (_captureBandFront != null)
+            DrawCanvas.Children.Remove(_captureBandFront);
+        _captureBandBack = null;
+        _captureBandFront = null;
+    }
+
+    private void UpdateCaptureBand(Point p)
+    {
+        if (_captureBandBack == null || _captureBandFront == null) return;
+        double left = Math.Min(_start.X, p.X);
+        double top = Math.Min(_start.Y, p.Y);
+        double width = Math.Abs(p.X - _start.X);
+        double height = Math.Abs(p.Y - _start.Y);
+        foreach (var band in new[] { _captureBandBack, _captureBandFront })
+        {
+            Canvas.SetLeft(band, left);
+            Canvas.SetTop(band, top);
+            band.Width = width;
+            band.Height = height;
+        }
+    }
+
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (!IsDrawing) return;
+        if (_selectingCapture)
+        {
+            _start = e.GetPosition(DrawCanvas);
+            _captureBandBack = new Rectangle
+            {
+                Stroke = new SolidColorBrush(Color.FromArgb(0xB0, 0x00, 0x00, 0x00)),
+                StrokeThickness = 1.0,
+                Fill = Brushes.Transparent
+            };
+            _captureBandFront = new Rectangle
+            {
+                Stroke = Brushes.White,
+                StrokeThickness = 1.0,
+                StrokeDashArray = new DoubleCollection { 4, 3 },
+                Fill = Brushes.Transparent
+            };
+            DrawCanvas.Children.Add(_captureBandBack);
+            DrawCanvas.Children.Add(_captureBandFront);
+            UpdateCaptureBand(_start);
+            _dragging = true;
+            if (!DrawCanvas.CaptureMouse())
+                CancelCaptureRegionSelection();
+            return;
+        }
         CommitActiveText();
         _start = e.GetPosition(DrawCanvas);
 
@@ -157,6 +238,12 @@ public partial class OverlayWindow : Window
     {
         if (!IsDrawing || !_dragging) return;
         var p = e.GetPosition(DrawCanvas);
+
+        if (_selectingCapture)
+        {
+            UpdateCaptureBand(p);
+            return;
+        }
 
         if (_model.CurrentTool == ToolKind.Freehand)
         {
@@ -181,6 +268,17 @@ public partial class OverlayWindow : Window
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
     {
         if (!IsDrawing || !_dragging) return;
+        if (_selectingCapture)
+        {
+            var end = e.GetPosition(DrawCanvas);
+            // The marquee must be gone (and the canvas re-rendered) before the caller
+            // blits the screen, or it would appear in the capture itself.
+            CancelCaptureRegionSelection();
+            var region = MapCanvasDragToPhysicalRegion(_start, end);
+            if (region.HasValue)
+                CaptureRegionSelected?.Invoke(region.Value);
+            return;
+        }
         _dragging = false;
         DrawCanvas.ReleaseMouseCapture();
 
@@ -236,10 +334,33 @@ public partial class OverlayWindow : Window
         };
     }
 
+    // Map a drag on the canvas (DIPs) to physical screen pixels proportionally against
+    // the window's physical rect — deliberately avoiding DPI factors, matching how the
+    // overlay itself is positioned.
+    private Int32Rect? MapCanvasDragToPhysicalRegion(Point a, Point b)
+    {
+        if (_hwnd == IntPtr.Zero) return null;
+        double canvasWidth = DrawCanvas.ActualWidth;
+        double canvasHeight = DrawCanvas.ActualHeight;
+        if (canvasWidth <= 0 || canvasHeight <= 0) return null;
+
+        var (winLeft, winTop, winWidth, winHeight) = NativeMethods.GetWindowPhysicalRect(_hwnd);
+        double scaleX = winWidth / canvasWidth;
+        double scaleY = winHeight / canvasHeight;
+
+        return Services.CaptureService.NormalizeRegion(
+            winLeft + (int)Math.Round(a.X * scaleX),
+            winTop + (int)Math.Round(a.Y * scaleY),
+            winLeft + (int)Math.Round(b.X * scaleX),
+            winTop + (int)Math.Round(b.Y * scaleY),
+            new Int32Rect(winLeft, winTop, winWidth, winHeight));
+    }
+
     // Discard the in-progress text box without committing it — used by "clear all",
     // where committing would resurrect the text the user is trying to wipe.
     public void CancelCurrentOperation()
     {
+        CancelCaptureRegionSelection();
         DetachActiveText();
         CancelActiveStroke();
     }
@@ -292,7 +413,10 @@ public partial class OverlayWindow : Window
 
     private void OnLostMouseCapture(object sender, MouseEventArgs e)
     {
-        if (_dragging)
+        if (!_dragging) return;
+        if (_selectingCapture)
+            CancelCaptureRegionSelection();
+        else
             CancelActiveStroke();
     }
 
